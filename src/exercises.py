@@ -33,34 +33,35 @@ def reset_db() -> None:
     if DB_PATH.exists():
         DB_PATH.unlink()
 
-
 def create_schema(conn: sqlite3.Connection) -> None:
+    """
+    Create tables for students, assignments, and grades with constraints.
+    """
     conn.executescript(
         """
         CREATE TABLE students (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          name TEXT NOT NULL,
-          email TEXT NOT NULL UNIQUE
+                                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                  name TEXT NOT NULL,
+                                  email TEXT NOT NULL UNIQUE
         );
 
-        CREATE TABLE courses (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          code TEXT NOT NULL UNIQUE,
-          title TEXT NOT NULL
+        CREATE TABLE assignments (
+                                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                     title TEXT NOT NULL,
+                                     max_points INTEGER NOT NULL CHECK(max_points > 0)
         );
 
-        CREATE TABLE enrollments (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          student_id INTEGER NOT NULL,
-          course_id INTEGER NOT NULL,
-          enrolled_at TEXT NOT NULL DEFAULT (datetime('now')),
-          FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
-          FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
-          UNIQUE(student_id, course_id)
+        CREATE TABLE grades (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                student_id INTEGER NOT NULL,
+                                assignment_id INTEGER NOT NULL,
+                                score INTEGER NOT NULL CHECK(score >= 0),
+                                FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+                                FOREIGN KEY (assignment_id) REFERENCES assignments(id) ON DELETE CASCADE,
+                                UNIQUE(student_id, assignment_id)
         );
         """
     )
-
 
 # ---------------------------
 # TODO 1: INSERT (parameterized)
