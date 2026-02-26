@@ -116,7 +116,7 @@ def add_assignment(conn: sqlite3.Connection, title: str, max_points: int) -> int
 
 def record_grade(conn: sqlite3.Connection, student_id: int, assignment_id: int, score: int) -> int:
     """Insert into grades and return new id."""
-    query = "INSERT INTO grades (student_id, assignment_id, score) VALUES (?, ?. ?)"
+    query = "INSERT INTO grades (student_id, assignment_id, score) VALUES (?, ?, ?)"
     cursor = conn.execute(query, (student_id, assignment_id, score))
     conn.commit()
     return cursor.lastrowid
@@ -163,7 +163,18 @@ def leaderboard(conn: sqlite3.Connection) -> list[sqlite3.Row]:
 
     avg_percent should average the per-assignment percent for each student.
     """
-    raise NotImplementedError
+    query = """
+            SELECT
+                s.name AS student_name,
+                AVG(1.0 * g.score / a.max_points * 100) AS avg_percent
+            FROM students s
+                     JOIN grades g ON s.id = g.student_id
+                     JOIN assignments a ON g.assignment_id = a.id
+            GROUP BY s.id
+            ORDER BY avg_percent DESC; 
+            """
+    cursor = conn.execute(query)
+    return cursor.fetchall()
 
 
 def print_rows(title: str, rows: Iterable[sqlite3.Row]) -> None:
@@ -193,7 +204,7 @@ def main() -> None:
         # DEMO DATA (customize as you like)
         # ---------------------------
         # TODO: After implementing the insert helpers, uncomment and run this block.
-        """
+
         s_ava = add_student(conn, "Ava", "ava@example.com")
         s_noah = add_student(conn, "Noah", "noah@example.com")
         s_maya = add_student(conn, "Maya", "maya@example.com")
@@ -213,12 +224,12 @@ def main() -> None:
         record_grade(conn, s_maya, a_mid, 180)
 
         conn.commit()
-        """
+
 
         # ---------------------------
         # REPORTS (uncomment after implementing TODOs)
         # ---------------------------
-        """
+
         print_rows("All students", list_students(conn))
 
         # Grade report for each student
@@ -227,7 +238,7 @@ def main() -> None:
             print_rows(f"Grade report: {s['name']}", rows)
 
         print_rows("Leaderboard by average percent", leaderboard(conn))
-        """
+
 
         print("Homework starter created. Implement TODOs, then uncomment the demo/report blocks in main().")
     finally:
