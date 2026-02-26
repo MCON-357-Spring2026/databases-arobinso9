@@ -173,7 +173,14 @@ def enroll_student(conn: sqlite3.Connection, student_id: int, course_id: int) ->
       - Use parameterized INSERT into enrollments
       - Do NOT commit here; caller controls commit/rollback.
     """
-    raise NotImplementedError
+    query = """
+            INSERT INTO enrollments (student_id, course_id)
+            VALUES (?, ?) 
+            """
+
+    conn.execute(query, (student_id, course_id))
+    return None
+
 
 
 def seed_courses(conn: sqlite3.Connection) -> None:
