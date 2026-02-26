@@ -75,7 +75,12 @@ def add_student(conn: sqlite3.Connection, name: str, email: str) -> int:
     """
     # cursor = conn.execute("INSERT ...", (...))
     # return cursor.lastrowid
-    raise NotImplementedError
+
+    query = "INSERT INTO students (name, email) VALUES (?, ?)"
+    cursor = conn.execute(query, (name, email))
+    conn.commit()  # we need to ensure the change is saved to the database
+
+    return cursor.lastrowid
 
 
 # ---------------------------
@@ -89,7 +94,11 @@ def find_student_by_email(conn: sqlite3.Connection, email: str) -> Optional[sqli
       - Use a parameterized SELECT
       - Use fetchone()
     """
-    raise NotImplementedError
+    query = "SELECT id, name, email FROM students WHERE email = ?"
+    cursor = conn.execute(query, (email,))
+
+    # fetchone() returns the first matching row or None if no match is found
+    return cursor.fetchone()
 
 
 # ---------------------------
@@ -103,7 +112,13 @@ def rename_student(conn: sqlite3.Connection, student_id: int, new_name: str) -> 
       - Use parameterized UPDATE
       - Return cursor.rowcount
     """
-    raise NotImplementedError
+    query = "UPDATE students SET name = ? WHERE id = ?"
+
+    # Pass parameters as a tuple in the correct order
+    cursor = conn.execute(query, (new_name, student_id))
+    conn.commit()
+
+    return cursor.rowcount
 
 
 # ---------------------------
@@ -116,8 +131,11 @@ def delete_student(conn: sqlite3.Connection, student_id: int) -> int:
     TODO:
       - Use parameterized DELETE
     """
-    raise NotImplementedError
+    query = "DELETE FROM students WHERE id = ?"
+    cursor = conn.execute(query, (student_id,))
+    conn.commit()
 
+    return cursor.rowcount
 
 # ---------------------------
 # TODO 5: JOIN query
@@ -130,8 +148,19 @@ def list_enrollments(conn: sqlite3.Connection) -> list[sqlite3.Row]:
       - Write a SELECT with JOIN across enrollments, students, courses
       - ORDER BY student_name, course_code
     """
-    raise NotImplementedError
+    query = """
+            SELECT
+                s.name AS student_name,
+                c.code AS course_code,
+                c.title AS course_title
+            FROM enrollments e
+                     JOIN students s ON e.student_id = s.id
+                     JOIN courses c ON e.course_id = c.id
+            ORDER BY student_name, course_code; 
+            """
 
+    cursor = conn.execute(query)
+    return cursor.fetchall()
 
 # ---------------------------
 # TODO 6: transaction behavior
