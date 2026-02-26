@@ -66,7 +66,31 @@ def create_schema(conn: sqlite3.Connection) -> None:
       - score (required, >= 0)
       - UNIQUE(student_id, assignment_id) to prevent duplicates
     """
-    raise NotImplementedError
+    conn.executescript(
+        """
+        CREATE TABLE students (
+                                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                  name TEXT NOT NULL,
+                                  email TEXT NOT NULL UNIQUE
+        );
+
+        CREATE TABLE assignments (
+                                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                     title TEXT NOT NULL,
+                                     max_points INTEGER NOT NULL CHECK(max_points > 0)
+        );
+
+        CREATE TABLE grades (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                student_id INTEGER NOT NULL,
+                                assignment_id INTEGER NOT NULL,
+                                score INTEGER NOT NULL CHECK(score >= 0),
+                                FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+                                FOREIGN KEY (assignment_id) REFERENCES assignments(id) ON DELETE CASCADE,
+                                UNIQUE(student_id, assignment_id)
+        );
+        """
+    )
 
 
 # ---------------------------
@@ -74,17 +98,29 @@ def create_schema(conn: sqlite3.Connection) -> None:
 # ---------------------------
 def add_student(conn: sqlite3.Connection, name: str, email: str) -> int:
     """Insert into students and return new id."""
-    raise NotImplementedError
+
+    query = "INSERT INTO students (name, email) VALUES (?, ?)"
+    cursor = conn.execute(query, (name, email))
+    conn.commit()
+    return cursor.lastrowid
 
 
 def add_assignment(conn: sqlite3.Connection, title: str, max_points: int) -> int:
     """Insert into assignments and return new id."""
-    raise NotImplementedError
+    query = "INSERT INTO assignments (title, max_points) VALUES (?, ?)"
+    cursor = conn.execute(query, (title, max_points))
+    conn.commit()
+    return cursor.lastrowid
+
 
 
 def record_grade(conn: sqlite3.Connection, student_id: int, assignment_id: int, score: int) -> int:
     """Insert into grades and return new id."""
-    raise NotImplementedError
+    query = "INSERT INTO grades (student_id, assignment_id, score) VALUES (?, ?. ?)"
+    cursor = conn.execute(query, (student_id, assignment_id, score))
+    conn.commit()
+    return cursor.lastrowid
+
 
 
 # ---------------------------
@@ -92,7 +128,9 @@ def record_grade(conn: sqlite3.Connection, student_id: int, assignment_id: int, 
 # ---------------------------
 def list_students(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     """Return all students ordered by name."""
-    raise NotImplementedError
+    query = "SELECT id, name, email FROM students ORDER BY name ASC"
+    cursor = conn.execute(query)
+    return cursor.fetchall()
 
 
 def student_grade_report(conn: sqlite3.Connection, student_id: int) -> list[sqlite3.Row]:
@@ -103,7 +141,19 @@ def student_grade_report(conn: sqlite3.Connection, student_id: int) -> list[sqli
     Hint:
       percent = ROUND(1.0 * score / max_points * 100, 1)
     """
-    raise NotImplementedError
+    query = """
+            SELECT
+                a.title AS assignment_title,
+                g.score,
+                a.max_points,
+                ROUND(1.0 * g.score / a.max_points * 100, 1) AS percent
+            FROM grades g
+                     JOIN assignments a ON g.assignment_id = a.id
+            WHERE g.student_id = ?
+            ORDER BY a.title; 
+            """
+    cursor = conn.execute(query, (student_id,))
+    return cursor.fetchall()
 
 
 def leaderboard(conn: sqlite3.Connection) -> list[sqlite3.Row]:
